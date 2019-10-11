@@ -14,7 +14,7 @@ import {
     View,
     Text
 } from 'react-native';
-import _ from 'lodash';
+import padStart from 'lodash.padstart';
 
 export default class VideoPlayer extends Component {
 
@@ -112,7 +112,7 @@ export default class VideoPlayer extends Component {
             seekPanResponder: PanResponder,
             controlTimeout: null,
             volumeWidth: 150,
-            iconOffset: 0,
+            iconOffset: 7,
             seekWidth: 0,
             ref: Video,
         };
@@ -126,6 +126,9 @@ export default class VideoPlayer extends Component {
             bottomControl: {
                 marginBottom: new Animated.Value( 0 ),
                 opacity: new Animated.Value( initialValue ),
+            },
+            maskedView: {
+                opacity: new Animated.Value( this.props.showOnStart ? 0.5 : 0 ),
             },
             topControl: {
                 marginTop: new Animated.Value( 0 ),
@@ -188,6 +191,7 @@ export default class VideoPlayer extends Component {
         let state = this.state;
 
         state.duration = data.duration;
+        console.log(data.duration);
         state.loading = false;
         this.setState( state );
 
@@ -208,11 +212,11 @@ export default class VideoPlayer extends Component {
      */
     _onProgress( data = {} ) {
         let state = this.state;
-        state.currentTime = data.currentTime;
-
+        
         if ( ! state.seeking ) {
             const position = this.calculateSeekerPosition();
             this.setSeekerPosition( position );
+            state.currentTime = data.currentTime;
         }
 
         if ( typeof this.props.onProgress === 'function' ) {
@@ -313,20 +317,16 @@ export default class VideoPlayer extends Component {
     hideControlAnimation() {
         Animated.parallel([
             Animated.timing(
+                this.animations.maskedView.opacity,
+                { toValue: 0 },
+            ),
+            Animated.timing(
                 this.animations.topControl.opacity,
                 { toValue: 0 }
             ),
             Animated.timing(
-                this.animations.topControl.marginTop,
-                { toValue: -100 }
-            ),
-            Animated.timing(
                 this.animations.bottomControl.opacity,
                 { toValue: 0 }
-            ),
-            Animated.timing(
-                this.animations.bottomControl.marginBottom,
-                { toValue: -100 }
             ),
         ]).start();
     }
@@ -339,20 +339,16 @@ export default class VideoPlayer extends Component {
     showControlAnimation() {
         Animated.parallel([
             Animated.timing(
+                this.animations.maskedView.opacity,
+                { toValue: 0.5 },
+            ),
+            Animated.timing(
                 this.animations.topControl.opacity,
                 { toValue: 1 }
             ),
             Animated.timing(
-                this.animations.topControl.marginTop,
-                { toValue: 0 }
-            ),
-            Animated.timing(
                 this.animations.bottomControl.opacity,
                 { toValue: 1 }
-            ),
-            Animated.timing(
-                this.animations.bottomControl.marginBottom,
-                { toValue: 0 }
             ),
         ]).start();
     }
@@ -487,13 +483,8 @@ export default class VideoPlayer extends Component {
      * based on if they want to see time remaining
      * or duration. Formatted to look as 00:00.
      */
-    calculateTime() {
-        if ( this.state.showTimeRemaining ) {
-            const time = this.state.duration - this.state.currentTime;
-            return `-${ this.formatTime( time ) }`;
-        }
-
-        return this.formatTime( this.state.currentTime );
+    calculateTime(time) {
+        return this.formatTime( time );
     }
 
     /**
@@ -503,16 +494,22 @@ export default class VideoPlayer extends Component {
      * @return {string} formatted time string in mm:ss format
      */
     formatTime( time = 0 ) {
-        const symbol = this.state.showRemainingTime ? '-' : '';
         time = Math.min(
             Math.max( time, 0 ),
             this.state.duration
         );
 
-        const formattedMinutes = _.padStart( Math.floor( time / 60 ).toFixed( 0 ), 2, 0 );
-        const formattedSeconds = _.padStart( Math.floor( time % 60 ).toFixed( 0 ), 2 , 0 );
+        const hours = Math.floor( time / 3600 );
+        const minutes = Math.floor( ( time % 3600 ) / 60 );
+        const seconds = Math.floor( time % 60);
 
-        return `${ symbol }${ formattedMinutes }:${ formattedSeconds }`;
+        const formattedHours = padStart( hours.toFixed( 0 ), 2, 0 );
+        const formattedMinutes = padStart( minutes.toFixed( 0 ), 2, 0 );
+        const formattedSeconds = padStart( seconds.toFixed( 0 ), 2 , 0 );
+
+        const formattedString = `${ formattedMinutes }:${ formattedSeconds }`
+
+        return formattedHours > 0 ? `${formattedHours}:${formattedString}` : formattedString;
     }
 
     /**
@@ -528,6 +525,7 @@ export default class VideoPlayer extends Component {
 
         state.seekerFillWidth = position;
         state.seekerPosition = position;
+        state.currentTime = this.calculateTimeFromSeekerPosition(position);
 
         if ( ! state.seeking ) {
             state.seekerOffset = position
@@ -571,7 +569,8 @@ export default class VideoPlayer extends Component {
      *
      * @return {float} time in ms based on seekerPosition.
      */
-    calculateTimeFromSeekerPosition() {
+    calculateTimeFromSeekerPosition(pos) {
+        let position = pos || this.state.seekerPosition;
         const percent = this.state.seekerPosition / this.player.seekerWidth;
         return this.state.duration * percent;
     }
@@ -646,7 +645,7 @@ export default class VideoPlayer extends Component {
      * @return {float} volume handle position in px based on volume
      */
     calculateVolumePositionFromVolume() {
-        return this.player.volumeWidth * this.state.volume;
+        return this.player.volumeWidth / this.state.volume;
     }
 
 
@@ -855,9 +854,17 @@ export default class VideoPlayer extends Component {
      */
     renderTopControls() {
 
-        const backControl = this.props.disableBack ? this.renderNullControl() : this.renderBack();
-        const volumeControl = this.props.disableVolume ? this.renderNullControl() : this.renderVolume();
-        const fullscreenControl = this.props.disableFullscreen ? this.renderNullControl() : this.renderFullscreen();
+        const backControl =
+            this.props.disableBack
+                ? this.renderNullControl()
+                : this.renderBack();
+
+        const topControl =
+            this.props.renderTopControl
+                ? this.props.renderTopControl()
+                : this.props.disableFullscreen
+                    ? this.renderNullControl()
+                    : this.renderFullscreen();
 
         return(
             <Animated.View style={[
@@ -867,18 +874,10 @@ export default class VideoPlayer extends Component {
                     marginTop: this.animations.topControl.marginTop,
                 }
             ]}>
-                <ImageBackground
-                    source={ require( './assets/img/top-vignette.png' ) }
-                    style={[ styles.controls.column ]}
-                    imageStyle={[ styles.controls.vignette ]}>
-                    <View style={ styles.controls.topControlGroup }>
-                        { backControl }
-                        <View style={ styles.controls.pullRight }>
-                            { volumeControl }
-                            { fullscreenControl }
-                        </View>
-                    </View>
-                </ImageBackground>
+                <View style={ styles.controls.topControlGroup }>
+                    { backControl }
+                    { topControl }
+                </View>
             </Animated.View>
         );
     }
@@ -888,7 +887,7 @@ export default class VideoPlayer extends Component {
      */
     renderBack() {
 
-        return this.renderControl(
+        return this.props.renderBackControl ? this.props.renderBackControl() : this.renderControl(
             <Image
                 source={ require( './assets/img/back.png' ) }
                 style={ styles.controls.back }
@@ -944,9 +943,10 @@ export default class VideoPlayer extends Component {
      */
     renderBottomControls() {
 
-        const timerControl = this.props.disableTimer ? this.renderNullControl() : this.renderTimer();
+        const remainingTime = this.props.disableTimer ? this.renderNullControl() : this.renderTimer( this.state.currentTime, 'left' );
+        const videoDuration = this.props.disableTimer ? this.renderNullControl() : this.renderTimer( this.state.duration, 'right' );
         const seekbarControl = this.props.disableSeekbar ? this.renderNullControl() : this.renderSeekbar();
-        const playPauseControl = this.props.disablePlayPause ? this.renderNullControl() : this.renderPlayPause();
+        // const playPauseControl = this.props.disablePlayPause ? this.renderNullControl() : this.renderPlayPause();
 
         return(
             <Animated.View style={[
@@ -965,9 +965,9 @@ export default class VideoPlayer extends Component {
                         styles.controls.row,
                         styles.controls.bottomControlGroup
                     ]}>
-                        { playPauseControl }
+                        { remainingTime }
                         { this.renderTitle() }
-                        { timerControl }
+                        { videoDuration }
 
                     </View>
                 </ImageBackground>
@@ -1050,13 +1050,13 @@ export default class VideoPlayer extends Component {
     /**
      * Show our timer.
      */
-    renderTimer() {
+    renderTimer(time, align) {
 
         return this.renderControl(
-            <Text style={ styles.controls.timerText }>
-                { this.calculateTime() }
+            <Text style={[ styles.controls.timerText, { textAlign: align } ]}>
+                { this.calculateTime(time) }
             </Text>,
-            this.methods.toggleTimer,
+            () => {},
             styles.controls.timer
         );
     }
@@ -1066,7 +1066,8 @@ export default class VideoPlayer extends Component {
      */
     renderLoader() {
         if ( this.state.loading ) {
-            return (
+
+            return this.props.renderLoader ? this.props.renderLoader() : (
                 <View style={ styles.loader.container }>
                     <Animated.Image source={ require( './assets/img/loader-icon.png' ) } style={[
                         styles.loader.icon,
@@ -1126,6 +1127,12 @@ export default class VideoPlayer extends Component {
                         style={[ styles.player.video, this.styles.videoStyle ]}
 
                         source={ this.props.source }
+                    />
+                    <Animated.View style={[
+                            styles.player.container,
+                            { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
+                            { opacity: this.animations.maskedView.opacity },
+                        ]}
                     />
                     { this.renderError() }
                     { this.renderTopControls() }
@@ -1237,7 +1244,6 @@ const styles = {
             justifyContent: 'space-between',
             flexDirection: 'row',
             width: null,
-            margin: 12,
             marginBottom: 18,
         },
         bottomControlGroup: {
@@ -1269,7 +1275,7 @@ const styles = {
             textAlign: 'center',
         },
         timer: {
-            width: 80,
+            width: 100,
         },
         timerText: {
             backgroundColor: 'transparent',
@@ -1302,9 +1308,6 @@ const styles = {
             marginTop: -24,
             marginLeft: -24,
             padding: 16,
-        },
-        icon: {
-            marginLeft:7
         }
     }),
     seekbar: StyleSheet.create({
@@ -1315,7 +1318,7 @@ const styles = {
             marginRight: 20
         },
         track: {
-            backgroundColor: '#333',
+            backgroundColor: '#ffffff99',
             height: 1,
             position: 'relative',
             top: 14,
@@ -1333,11 +1336,12 @@ const styles = {
             width: 28,
         },
         circle: {
-            borderRadius: 12,
+            borderRadius: 16,
             position: 'relative',
-            top: 8, left: 8,
-            height: 12,
-            width: 12,
+            top: 6,
+            left: 8,
+            height: 16,
+            width: 16,
         },
     })
 };
