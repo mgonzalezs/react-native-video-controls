@@ -3,12 +3,9 @@ import Video from 'react-native-video';
 import {
     TouchableWithoutFeedback,
     TouchableHighlight,
-    ImageBackground,
     PanResponder,
     StyleSheet,
-    Touchable,
     Animated,
-    Platform,
     Easing,
     Image,
     View,
@@ -124,14 +121,15 @@ export default class VideoPlayer extends Component {
 
         this.animations = {
             bottomControl: {
-                marginBottom: new Animated.Value( 0 ),
                 opacity: new Animated.Value( initialValue ),
             },
             maskedView: {
                 opacity: new Animated.Value( this.props.showOnStart ? 0.5 : 0 ),
             },
+            playPause: {
+                opacity: new Animated.Value( 0 ),
+            },
             topControl: {
-                marginTop: new Animated.Value( 0 ),
                 opacity: new Animated.Value( initialValue ),
             },
             video: {
@@ -328,6 +326,10 @@ export default class VideoPlayer extends Component {
                 this.animations.bottomControl.opacity,
                 { toValue: 0 }
             ),
+            Animated.timing(
+                this.animations.playPause.opacity,
+                { toValue: 0 }
+            ),
         ]).start();
     }
 
@@ -348,6 +350,10 @@ export default class VideoPlayer extends Component {
             ),
             Animated.timing(
                 this.animations.bottomControl.opacity,
+                { toValue: 1 }
+            ),
+            Animated.timing(
+                this.animations.playPause.opacity,
                 { toValue: 1 }
             ),
         ]).start();
@@ -853,7 +859,6 @@ export default class VideoPlayer extends Component {
      * view and spaces them out.
      */
     renderTopControls() {
-
         const backControl =
             this.props.disableBack
                 ? this.renderNullControl()
@@ -871,7 +876,6 @@ export default class VideoPlayer extends Component {
                 styles.controls.top,
                 {
                     opacity: this.animations.topControl.opacity,
-                    marginTop: this.animations.topControl.marginTop,
                 }
             ]}>
                 <View style={ styles.controls.topControlGroup }>
@@ -946,31 +950,25 @@ export default class VideoPlayer extends Component {
         const remainingTime = this.props.disableTimer ? this.renderNullControl() : this.renderTimer( this.state.currentTime, 'left' );
         const videoDuration = this.props.disableTimer ? this.renderNullControl() : this.renderTimer( this.state.duration, 'right' );
         const seekbarControl = this.props.disableSeekbar ? this.renderNullControl() : this.renderSeekbar();
-        // const playPauseControl = this.props.disablePlayPause ? this.renderNullControl() : this.renderPlayPause();
 
         return(
             <Animated.View style={[
                 styles.controls.bottom,
                 {
                     opacity: this.animations.bottomControl.opacity,
-                    marginBottom: this.animations.bottomControl.marginBottom,
                 }
             ]}>
-                <ImageBackground
-                    source={ require( './assets/img/bottom-vignette.png' ) }
-                    style={[ styles.controls.column ]}
-                    imageStyle={[ styles.controls.vignette ]}>
-                    { seekbarControl }
-                    <View style={[
-                        styles.controls.row,
-                        styles.controls.bottomControlGroup
-                    ]}>
-                        { remainingTime }
-                        { this.renderTitle() }
-                        { videoDuration }
+                { this.props.fullscreen  && seekbarControl }
+                <View style={[
+                    styles.controls.row,
+                    styles.controls.bottomControlGroup
+                ]}>
+                    { remainingTime }
+                    { this.renderTitle() }
+                    { videoDuration }
 
-                    </View>
-                </ImageBackground>
+                </View>
+                { !this.props.fullscreen && seekbarControl }
             </Animated.View>
         );
     }
@@ -1015,11 +1013,32 @@ export default class VideoPlayer extends Component {
      */
     renderPlayPause() {
 
-        let source = this.state.paused === true ? require( './assets/img/play.png' ) : require( './assets/img/pause.png' );
-        return this.renderControl(
-            <Image source={ source } />,
-            this.methods.togglePlayPause,
-            styles.controls.playPause
+        if (this.state.loading) {
+            return null;
+        }
+
+        let content;
+
+        if (this.props.renderPlayPause) {
+            content = this.props.renderPlayPause();
+        } else {
+            const source = this.state.paused === true ? require( './assets/img/play.png' ) : require( './assets/img/pause.png' );
+            content = this.renderControl(
+                <Image source={ source } />,
+                this.methods.togglePlayPause,
+                styles.controls.playPause
+            );
+        }
+
+        return (
+            <Animated.View style={[
+                styles.controls.playPauseControls,
+                {
+                    opacity: this.animations.playPause.opacity,
+                }
+            ]}>
+                { content }
+            </Animated.View>
         );
     }
 
@@ -1067,17 +1086,19 @@ export default class VideoPlayer extends Component {
     renderLoader() {
         if ( this.state.loading ) {
 
-            return this.props.renderLoader ? this.props.renderLoader() : (
+            return (
                 <View style={ styles.loader.container }>
-                    <Animated.Image source={ require( './assets/img/loader-icon.png' ) } style={[
-                        styles.loader.icon,
-                        { transform: [
-                            { rotate: this.animations.loader.rotate.interpolate({
-                                inputRange: [ 0, 360 ],
-                                outputRange: [ '0deg', '360deg' ]
-                            })}
-                        ]}
-                    ]} />
+                    {this.props.renderLoader ? this.props.renderLoader() : (
+                        <Animated.Image source={ require( './assets/img/loader-icon.png' ) } style={[
+                            styles.loader.icon,
+                            { transform: [
+                                { rotate: this.animations.loader.rotate.interpolate({
+                                    inputRange: [ 0, 360 ],
+                                    outputRange: [ '0deg', '360deg' ]
+                                })}
+                            ]}
+                        ]} />
+                    )}
                 </View>
             );
         }
@@ -1134,10 +1155,13 @@ export default class VideoPlayer extends Component {
                             { opacity: this.animations.maskedView.opacity },
                         ]}
                     />
-                    { this.renderError() }
-                    { this.renderTopControls() }
-                    { this.renderLoader() }
-                    { this.renderBottomControls() }
+                    <View style={{ flex: 1 }} pointerEvents={this.state.showControls ? 'box-none' : 'box-only'}>
+                        { this.renderError() }
+                        { this.renderTopControls() }
+                        { this.renderLoader() }
+                        { this.renderPlayPause() }
+                        { this.renderBottomControls() }
+                    </View>
                 </View>
             </TouchableWithoutFeedback>
         );
@@ -1235,7 +1259,7 @@ const styles = {
         },
         bottom: {
             alignItems: 'stretch',
-            flex: 2,
+            flex: 1,
             justifyContent: 'flex-end',
         },
         topControlGroup: {
@@ -1264,6 +1288,13 @@ const styles = {
             position: 'relative',
             width: 80,
             zIndex: 0
+        },
+        playPauseControls: {
+            flex: 1,
+            alignContent: 'center',
+            alignItems: 'center',
+            flexDirection: 'row',
+            justifyContent: 'center',
         },
         title: {
             alignItems: 'center',
