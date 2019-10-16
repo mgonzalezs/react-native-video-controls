@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import Video from 'react-native-video';
 import {
+    I18nManager,
     TouchableWithoutFeedback,
     TouchableHighlight,
     PanResponder,
@@ -947,8 +948,12 @@ export default class VideoPlayer extends Component {
      */
     renderBottomControls() {
 
-        const remainingTime = this.props.disableTimer ? this.renderNullControl() : this.renderTimer( this.state.currentTime, 'left' );
-        const videoDuration = this.props.disableTimer ? this.renderNullControl() : this.renderTimer( this.state.duration, 'right' );
+        const remainingTime = this.props.disableTimer
+            ? this.renderNullControl()
+            : this.renderTimer( this.state.currentTime, I18nManager.isRTL ? 'right' : 'left' );
+        const videoDuration = this.props.disableTimer
+            ? this.renderNullControl()
+            : this.renderTimer( this.state.duration, I18nManager.isRTL ? 'left' : 'right' );
         const seekbarControl = this.props.disableSeekbar ? this.renderNullControl() : this.renderSeekbar();
 
         return(
@@ -995,7 +1000,7 @@ export default class VideoPlayer extends Component {
                 <View
                     style={[
                         styles.seekbar.handle,
-                        { left: this.state.seekerPosition }
+                        { [I18nManager.isRTL ? 'right' : 'left']: this.state.seekerPosition },
                     ]}
                     { ...this.player.seekPanResponder.panHandlers }
                 >
@@ -1222,7 +1227,7 @@ const styles = {
     }),
     controls: StyleSheet.create({
         row: {
-            flexDirection: 'row',
+            flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
             height: null,
@@ -1358,7 +1363,8 @@ const styles = {
         fill: {
             backgroundColor: '#FFF',
             height: 1,
-            width: '100%'
+            width: '100%',
+            alignSelf: I18nManager.isRTL ? 'flex-end' : 'flex-start',
         },
         handle: {
             position: 'absolute',
@@ -1370,7 +1376,7 @@ const styles = {
             borderRadius: 16,
             position: 'relative',
             top: 6,
-            left: 8,
+            left: I18nManager.isRTL ? 11 : 8,
             height: 16,
             width: 16,
         },
