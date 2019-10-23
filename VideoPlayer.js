@@ -59,6 +59,7 @@ export default class VideoPlayer extends Component {
             seekerOffset: 0,
             seeking: false,
             loading: false,
+            loaded: false,
             currentTime: 0,
             error: false,
             duration: 0,
@@ -128,7 +129,7 @@ export default class VideoPlayer extends Component {
                 opacity: new Animated.Value( this.props.showOnStart ? 0.5 : 0 ),
             },
             playPause: {
-                opacity: new Animated.Value( 0 ),
+                opacity: new Animated.Value( initialValue ),
             },
             topControl: {
                 opacity: new Animated.Value( initialValue ),
@@ -190,8 +191,8 @@ export default class VideoPlayer extends Component {
         let state = this.state;
 
         state.duration = data.duration;
-        console.log(data.duration);
         state.loading = false;
+        state.loaded = true;
         this.setState( state );
 
         if ( state.showControls ) {
@@ -1018,7 +1019,7 @@ export default class VideoPlayer extends Component {
      */
     renderPlayPause() {
 
-        if (this.state.loading) {
+        if (!this.state.loaded || this.state.error) {
             return null;
         }
 
