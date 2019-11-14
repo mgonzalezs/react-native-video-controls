@@ -1082,7 +1082,7 @@ export default class VideoPlayer extends Component {
                 { this.calculateTime(time) }
             </Text>,
             () => {},
-            styles.controls.timer
+            [styles.controls.timer, this.props.fullscreen ? styles.controls.timerBottom : {}],
         );
     }
 
@@ -1313,6 +1313,12 @@ const styles = {
         },
         timer: {
             width: 100,
+        },
+        timerBottom: {
+            padding: 0,
+            paddingHorizontal: 8,
+            paddingTop: 8,
+            paddingBottom: 24,
         },
         timerText: {
             backgroundColor: 'transparent',
