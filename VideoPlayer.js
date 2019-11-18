@@ -1383,7 +1383,7 @@ const styles = {
             borderRadius: 16,
             position: 'relative',
             top: 6,
-            left: I18nManager.isRTL ? 11 : 8,
+            left: I18nManager.isRTL ? 11 : 6,
             height: 16,
             width: 16,
         },
