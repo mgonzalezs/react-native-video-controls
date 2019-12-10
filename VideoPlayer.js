@@ -683,10 +683,18 @@ export default class VideoPlayer extends Component {
      * we have to handle possible props changes to state changes
      */
     componentWillReceiveProps(nextProps) {
-        if (this.state.paused !== nextProps.paused ) {
+        if ( this.state.paused !== nextProps.paused ) {
             this.setState({
                 paused: nextProps.paused
             })
+        }
+
+        if ( this.opts.title !== nextProps.title ) {
+            this.opts.title = nextProps.title;
+        }
+
+        if ( this.props.source !== nextProps.source ) {
+            this.events.onScreenTouch();
         }
     }
 
