@@ -1384,16 +1384,16 @@ const styles = {
         handle: {
             position: 'absolute',
             marginLeft: -7,
-            height: 28,
-            width: 28,
+            height: 32,
+            width: 32,
         },
         circle: {
             borderRadius: 16,
             position: 'relative',
-            top: 6,
+            top: 5,
             left: I18nManager.isRTL ? 11 : 6,
-            height: 16,
-            width: 16,
+            height: 20,
+            width: 20,
         },
     })
 };
