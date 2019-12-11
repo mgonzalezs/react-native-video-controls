@@ -693,7 +693,7 @@ export default class VideoPlayer extends Component {
             this.opts.title = nextProps.title;
         }
 
-        if ( this.props.source !== nextProps.source ) {
+        if ( this.props.source.uri !== nextProps.source.uri ) {
             this.events.onScreenTouch();
         }
     }
