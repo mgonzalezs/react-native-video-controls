@@ -899,6 +899,7 @@ export default class VideoPlayer extends Component {
             ]}>
                 <View style={ styles.controls.topControlGroup }>
                     { backControl }
+                    { this.renderTitle() }
                     { topControl }
                 </View>
             </Animated.View>
@@ -987,7 +988,6 @@ export default class VideoPlayer extends Component {
                     styles.controls.bottomControlGroup
                 ]}>
                     { remainingTime }
-                    { this.renderTitle() }
                     { videoDuration }
 
                 </View>
@@ -1078,7 +1078,8 @@ export default class VideoPlayer extends Component {
                 ]}>
                     <Text style={[
                         styles.controls.text,
-                        styles.controls.titleText
+                        styles.controls.titleText,
+                        this.props.titleStyle,
                     ]} numberOfLines={ 1 }>
                         { this.opts.title || '' }
                     </Text>
