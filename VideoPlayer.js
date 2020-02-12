@@ -64,6 +64,7 @@ export default class VideoPlayer extends Component {
             currentTime: 0,
             error: false,
             duration: 0,
+            seekbarPosition: 'default',
         };
 
         /**
@@ -982,7 +983,7 @@ export default class VideoPlayer extends Component {
                     opacity: this.animations.bottomControl.opacity,
                 }
             ]}>
-                { this.props.fullscreen  && seekbarControl }
+                { this.props.seekbarPosition === 'default' && seekbarControl }
                 <View style={[
                     styles.controls.row,
                     styles.controls.bottomControlGroup
@@ -991,7 +992,7 @@ export default class VideoPlayer extends Component {
                     { videoDuration }
 
                 </View>
-                { !this.props.fullscreen && seekbarControl }
+                { this.props.seekbarPosition === 'bottom' && seekbarControl }
             </Animated.View>
         );
     }
