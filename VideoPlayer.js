@@ -215,7 +215,7 @@ export default class VideoPlayer extends Component {
     _onProgress( data = {} ) {
         let state = this.state;
         
-        if ( ! state.seeking ) {
+        if ( ! state.seeking || ! state.loading ) {
             const position = this.calculateSeekerPosition();
             this.setSeekerPosition( position );
             state.currentTime = data.currentTime;
