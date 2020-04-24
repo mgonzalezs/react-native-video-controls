@@ -29,6 +29,7 @@ export default class VideoPlayer extends Component {
         title:                          '',
         rate:                           1,
         isFullscreen:                   false,
+        seekbarPosition:                'default',
     };
 
     constructor( props ) {
@@ -64,7 +65,6 @@ export default class VideoPlayer extends Component {
             currentTime: 0,
             error: false,
             duration: 0,
-            seekbarPosition: 'default',
         };
 
         /**
@@ -697,6 +697,7 @@ export default class VideoPlayer extends Component {
 
         if ( this.props.source.uri !== nextProps.source.uri ) {
             this.events.onScreenTouch();
+            this.setSeekerPosition();
         }
 
         if (this.styles.videoStyle !== nextProps.videoStyle){
